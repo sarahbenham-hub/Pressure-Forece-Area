@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pressure, Force & Area Simulation</title>
+<style>
+:root {
+  --ink: #203040;
+  --muted: #607080;
+  --line: #d7dee5;
+  --panel: #f6f8fa;
+  --accent: #3567a8;
+  --accent-light: #e8f0fb;
+  --danger: #d9381e;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  color: var(--ink);
+  background: #f4f7f9;
+  line-height: 1.5;
+}
+
+.wrap {
+  max-width: 1050px;
+  margin: auto;
+  padding: 24px;
+}
+
+header {
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 18px;
+  margin-bottom: 22px;
+  background: white;
+  padding: 24px;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+}
+
+h1 { margin: 0 0 5px; font-size: clamp(1.7rem, 4vw, 2.4rem); }
+h2 { font-size: 1.25rem; margin-top: 0; }
+.subtitle { color: var(--muted); font-weight: 600; }
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.card {
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 20px;
+  background: white;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+}
+
+label { font-weight: 700; display: block; }
+.row { display: flex; justify-content: space-between; gap: 12px; align-items: center; margin-bottom: 7px; }
+.val { font-weight: 700; color: var(--accent); font-size: 1.1rem; }
+
+input[type=range] {
+  width: 100%;
+  accent-color: var(--accent);
+  min-height: 35px;
+  cursor: pointer;
+}
+
+.btn-group { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 15px; }
+
+button {
+  border: 1px solid #aeb9c5;
+  background: white;
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-weight: 700;
+  cursor: pointer;
+  min-height: 40px;
+  transition: all 0.2s ease;
+}
+
+button:hover { background: #f1f4f7; border-color: var(--accent); }
+button.active { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+
+.formula {
+  margin-top: 15px;
+  padding: 12px;
+  text-align: center;
+  background: var(--panel);
+  border-radius: 10px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  letter-spacing: 1px;
+}
+
+.result { text-align: center; margin: 15px 0; }
+.result .number { font-size: 2.5rem; font-weight: 800; transition: color 0.2s; }
+.unit { color: var(--muted); font-weight: 600; }
+
+svg { width: 100%; height: auto; display: block; overflow: visible; }
+
+.prompt {
+  background: var(--accent-light);
+  border-left: 4px solid var(--accent);
+  padding: 12px 15px;
+  border-radius: 6px;
+  margin-top: 12px;
+  font-size: 0.95rem;
+}
+
+.challenge { padding: 12px 0; border-bottom: 1px solid var(--line); }
+.challenge:last-child { border-bottom: 0; }
+.small { font-size: .94rem; color: var(--muted); }
+
+@media (max-width: 720px) {
+  .grid { grid-template-columns: 1fr; }
+  .wrap { padding: 14px; }
+}
+</style>
+</head>
+<body>
+
+<main class="wrap">
+  <header>
+    <h1>Pressure, Force & Area</h1>
+    <div class="subtitle">Grade 8 Science • Interactive Investigation</div>
+    <p>Use the sliders to investigate how changing force and contact area alters pressure.</p>
+  </header>
+
+  <div class="grid">
+    <!-- CONTROLS & CALCULATIONS -->
+    <section class="card">
+      <h2>1. Controls & Calculation</h2>
+
+      <div style="margin: 18px 0;">
+        <div class="row">
+          <label for="force">Force (F)</label>
+          <span class="val"><span id="forceVal">100</span> N</span>
+        </div>
+        <input id="force" type="range" min="10" max="500" step="10" value="100">
+      </div>
+
+      <div style="margin: 18px 0;">
+        <div class="row">
+          <label for="area">Contact Area (A)</label>
+          <span class="val"><span id="areaVal">1.00</span> m²</span>
+        </div>
+        <input id="area" type="range" min="0.10" max="5.00" step="0.10" value="1.00">
+      </div>
+
+      <div class="btn-group">
+        <button id="reset" type="button">Reset</button>
+        <button id="presetSnowshoe" type="button">Snowshoes Mode</button>
+        <button id="presetSharp" type="button">Sharp Point Mode</button>
+      </div>
+
+      <div class="formula">P = F ÷ A</div>
+
+      <div class="result">
+        <div class="number" id="pressureVal">100</div>
+        <div class="unit">pascals (Pa)</div>
+      </div>
+    </section>
+
+    <!-- INTERACTIVE VISUALIZATION -->
+    <section class="card">
+      <h2>2. Visual Simulation</h2>
+      <svg viewBox="0 0 520 310" role="img" aria-label="A block pressing down on a surface showing dynamic force and contact area visualizer.">
+        <!-- Ground Base -->
+        <rect x="45" y="215" width="430" height="30" rx="5" fill="#eef1f4" stroke="#b7c0c9" stroke-width="2"/>
+        
+        <!-- Surface Pressure Highlight Line -->
+        <line id="contactLine" x1="195" y1="215" x2="325" y2="215" stroke="#3567a8" stroke-width="6" stroke-linecap="round"/>
+
+        <!-- Object Block -->
+        <rect id="block" x="195" y="120" width="130" height="95" rx="8" fill="#e8f0fb" stroke="#3567a8" stroke-width="3"/>
+        <text id="blockLabel" x="260" y="174" text-anchor="middle" font-size="16" font-weight="bold" fill="#203040">Object</text>
+
+        <!-- Dynamic Force Arrow Line -->
+        <line id="forceLine" x1="260" y1="50" x2="260" y2="108" stroke="#203040" stroke-width="5" stroke-linecap="round"/>
+        <polygon id="forceHead" points="260,118 251,102 269,102" fill="#203040"/>
+        
+        <!-- Force Label -->
+        <text id="forceSvg" x="275" y="65" font-size="16" font-weight="bold" fill="#203040">100 N</text>
+        
+        <!-- Contact Area Label -->
+        <text id="areaSvg" x="260" y="270" text-anchor="middle" font-size="16" font-weight="bold" fill="#203040">Contact area: 1.00 m²</text>
+      </svg>
+
+      <div class="prompt"><strong>Notice:</strong> How does changing the area affect the contact width against the surface?</div>
+      <div class="prompt"><strong>Notice:</strong> Watch the pressure line color shift from blue to red as pressure grows!</div>
+    </section>
+  </div>
+
+  <!-- CHALLENGES -->
+  <section class="card" style="margin-top:20px">
+    <h2>3. Guided Investigation Challenges</h2>
+    <div class="challenge"><strong>Challenge A:</strong> Set the area to 1.00 m². Double the force from 100 N to 200 N. What happens to the pressure?</div>
+    <div class="challenge"><strong>Challenge B:</strong> Set the force to 100 N. Double the area from 1.00 m² to 2.00 m². What happens to the pressure?</div>
+    <div class="challenge"><strong>Challenge C:</strong> Find two completely different combinations of force and area that produce the exact same pressure.</div>
+    <div class="challenge"><strong>Challenge D:</strong> Adjust the controls to produce exactly <strong>200 Pa</strong>. Record your combination.</div>
+  </section>
+
+  <!-- KEY TAKEAWAY -->
+  <section class="card" style="margin-top:20px">
+    <h2>4. Core Takeaway</h2>
+    <p><strong>Pressure is the amount of force exerted over a given unit of area.</strong></p>
+    <ul>
+      <li><strong>Increase Force</strong> (same area) $\rightarrow$ Pressure <strong>Increases</strong></li>
+      <li><strong>Increase Area</strong> (same force) $\rightarrow$ Pressure <strong>Decreases</strong></li>
+    </ul>
+    <p class="small">Formula: Pressure (Pa) = Force (N) ÷ Area (m²)</p>
+  </section>
+</main>
+
+<script>
+const force = document.getElementById("force");
+const area = document.getElementById("area");
+const forceVal = document.getElementById("forceVal");
+const areaVal = document.getElementById("areaVal");
+const pressureVal = document.getElementById("pressureVal");
+
+const forceSvg = document.getElementById("forceSvg");
+const areaSvg = document.getElementById("areaSvg");
+const block = document.getElementById("block");
+const blockLabel = document.getElementById("blockLabel");
+const forceLine = document.getElementById("forceLine");
+const forceHead = document.getElementById("forceHead");
+const contactLine = document.getElementById("contactLine");
+
+const resetBtn = document.getElementById("reset");
+const presetSnowshoe = document.getElementById("presetSnowshoe");
+const presetSharp = document.getElementById("presetSharp");
+
+function update() {
+  const f = Math.max(10, Math.min(500, Number(force.value) || 100));
+  const a = Math.max(0.1, Math.min(5, Number(area.value) || 1));
+  const p = f / a;
+
+  // Update text values
+  forceVal.textContent = f;
+  areaVal.textContent = a.toFixed(2);
+  
+  // Clean decimal formatting
+  pressureVal.textContent = p >= 1000 ? Math.round(p).toLocaleString() : (Math.round(p * 10) / 10);
+  forceSvg.textContent = f + " N";
+  areaSvg.textContent = "Contact area: " + a.toFixed(2) + " m²";
+
+  // 1. Update Block Width (Area scaling)
+  const minW = 20;
+  const maxW = 380;
+  const w = minW + (a / 5.0) * (maxW - minW);
+  const blockX = 260 - w / 2;
+  
+  block.setAttribute("x", blockX);
+  block.setAttribute("width", w);
+  blockLabel.setAttribute("x", 260);
+
+  // 2. Update Surface Contact Line
+  contactLine.setAttribute("x1", blockX);
+  contactLine.setAttribute("x2", blockX + w);
+
+  // 3. Dynamic Force Arrow Visual
+  const arrowLength = 25 + (f / 500) * 55; // Arrow length scales with force
+  const strokeW = 3 + (f / 500) * 8; // Arrow thickness scales
+  const headY = 118;
+  const topY = headY - arrowLength;
+
+  forceLine.setAttribute("y1", topY);
+  forceLine.setAttribute("y2", headY - 8);
+  forceLine.setAttribute("stroke-width", strokeW);
+  forceSvg.setAttribute("y", topY + 12);
+
+  // 4. Heatmap Pressure Indicator Color (Hue shifts from 210 Blue -> 0 Red)
+  const maxP = 2000;
+  const ratio = Math.min(p / maxP, 1);
+  const hue = 210 - (ratio * 210); // 210 = Cool Blue, 0 = Red
+  
+  contactLine.setAttribute("stroke", `hsl(${hue}, 85%, 45%)`);
+  pressureVal.style.color = `hsl(${hue}, 85%, 40%)`;
+}
+
+// Event Listeners
+force.addEventListener("input", update);
+area.addEventListener("input", update);
+
+resetBtn.addEventListener("click", () => {
+  force.value = 100;
+  area.value = 1.00;
+  update();
+});
+
+presetSnowshoe.addEventListener("click", () => {
+  force.value = 400;
+  area.value = 4.50;
+  update();
+});
+
+presetSharp.addEventListener("click", () => {
+  force.value = 300;
+  area.value = 0.10;
+  update();
+});
+
+// Initial run
+update();
+</script>
+
+</body>
+</html>
